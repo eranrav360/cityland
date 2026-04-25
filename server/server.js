@@ -123,6 +123,8 @@ function calculateScores(room) {
 
 // ─── Round lifecycle ─────────────────────────────────────────────────────────
 
+const REVEAL_DELAY = 4500; // ms clients get to show the animation
+
 function startRound(roomCode) {
   const room = rooms.get(roomCode);
   if (!room) return;
@@ -131,7 +133,7 @@ function startRound(roomCode) {
   room.usedLetters.push(letter);
   room.currentLetter = letter;
   room.roundNumber += 1;
-  room.state = 'playing';
+  room.state = 'revealing';
   room.answers = {};
   room.hintUsed = {};
   room.submittedPlayers = new Set();
@@ -139,23 +141,37 @@ function startRound(roomCode) {
 
   for (const sid of room.players.keys()) room.answers[sid] = {};
 
-  io.to(roomCode).emit('game_started', {
+  // Phase 1 — show the letter reveal animation on all clients
+  io.to(roomCode).emit('letter_reveal', {
     letter,
-    categories: CATEGORIES,
-    timeLeft: room.config.timeLimit,
     roundNumber: room.roundNumber,
     totalRounds: room.config.rounds,
   });
 
-  room.timer = setInterval(() => {
-    room.timeLeft--;
-    io.to(roomCode).emit('timer_update', { timeLeft: room.timeLeft });
-    if (room.timeLeft <= 0) {
-      clearInterval(room.timer);
-      room.timer = null;
-      endRound(roomCode);
-    }
-  }, 1000);
+  // Phase 2 — start the real round after the animation finishes
+  room.revealTimer = setTimeout(() => {
+    if (!rooms.has(roomCode)) return;
+    room.revealTimer = null;
+    room.state = 'playing';
+
+    io.to(roomCode).emit('game_started', {
+      letter,
+      categories: CATEGORIES,
+      timeLeft: room.config.timeLimit,
+      roundNumber: room.roundNumber,
+      totalRounds: room.config.rounds,
+    });
+
+    room.timer = setInterval(() => {
+      room.timeLeft--;
+      io.to(roomCode).emit('timer_update', { timeLeft: room.timeLeft });
+      if (room.timeLeft <= 0) {
+        clearInterval(room.timer);
+        room.timer = null;
+        endRound(roomCode);
+      }
+    }, 1000);
+  }, REVEAL_DELAY);
 }
 
 function endRound(roomCode) {
@@ -163,8 +179,9 @@ function endRound(roomCode) {
   if (!room || room.state === 'reviewing') return;
 
   room.state = 'reviewing';
-  if (room.timer)     { clearInterval(room.timer);     room.timer = null; }
-  if (room.stopTimer) { clearInterval(room.stopTimer); room.stopTimer = null; }
+  if (room.revealTimer) { clearTimeout(room.revealTimer);  room.revealTimer = null; }
+  if (room.timer)       { clearInterval(room.timer);       room.timer = null; }
+  if (room.stopTimer)   { clearInterval(room.stopTimer);   room.stopTimer = null; }
 
   const { scores, categoryScores } = calculateScores(room);
 
@@ -214,6 +231,7 @@ io.on('connection', (socket) => {
       submittedPlayers: new Set(),
       timer: null,
       stopTimer: null,
+      revealTimer: null,
       timeLeft: DEFAULT_TIME,
     });
 
@@ -336,6 +354,7 @@ io.on('connection', (socket) => {
       room.players.delete(socket.id);
 
       if (room.players.size === 0) {
+        clearTimeout(room.revealTimer);
         clearInterval(room.timer);
         clearInterval(room.stopTimer);
         rooms.delete(code);

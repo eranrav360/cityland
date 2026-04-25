@@ -65,47 +65,42 @@ export default function Game({
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   const timerDisplay = `${minutes}:${String(seconds).padStart(2, '0')}`;
-  const timerPercent = Math.max(0, (timeLeft / 90) * 100);
+  const timerPercent = Math.max(0, (timeLeft / (totalRounds > 0 ? timeLeft : 90)) * 100);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col" dir="rtl">
-      {/* Header */}
-      <div className={`sticky top-0 z-10 shadow-md px-4 py-3 transition-colors ${isStopping ? 'bg-orange-500' : 'bg-blue-600'}`}>
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="text-white">
-            <p className="text-xs font-medium opacity-80">סיבוב {roundNumber} מתוך {totalRounds}</p>
-            <div className="flex items-center gap-2">
-              <span className="text-4xl font-black">{letter}</span>
-              <div>
-                <p className="text-xs opacity-70">האות</p>
-              </div>
-            </div>
-          </div>
+      {/* Header — slim info bar */}
+      <div className={`sticky top-0 z-10 shadow-md transition-colors ${isStopping ? 'bg-orange-500' : 'bg-blue-600'}`}>
+        <div className="max-w-2xl mx-auto px-4 py-2 flex items-center justify-between">
+          <span className="text-white/80 text-sm font-semibold">סיבוב {roundNumber} מתוך {totalRounds}</span>
+          <span className="text-white/80 text-sm font-semibold">הגישו {submittedCount}/{players.length}</span>
+        </div>
 
-          {/* Timer */}
-          <div className="text-center">
-            {isStopping ? (
-              <div>
-                <p className="text-white text-xs font-semibold">⛔ {stopCalledBy} קרא סטופ!</p>
-                <p className={`text-3xl font-black text-white ${timerCritical ? 'timer-critical' : ''}`}>{timerDisplay}</p>
-              </div>
-            ) : (
-              <p className={`text-4xl font-black text-white ${timerCritical ? 'timer-critical' : ''}`}>{timerDisplay}</p>
-            )}
-            {/* Progress bar */}
-            <div className="w-24 h-1.5 bg-white/30 rounded-full mt-1 mx-auto overflow-hidden">
-              <div
-                className="h-full bg-white rounded-full transition-all duration-1000"
-                style={{ width: `${timerPercent}%` }}
-              />
-            </div>
+        {/* Timer row */}
+        <div className="text-center pb-2">
+          {isStopping && (
+            <p className="text-white text-xs font-semibold mb-0.5">⛔ {stopCalledBy} קרא סטופ!</p>
+          )}
+          <p className={`text-5xl font-black text-white leading-none ${timerCritical ? 'timer-critical' : ''}`}>
+            {timerDisplay}
+          </p>
+          <div className="w-48 h-1.5 bg-white/30 rounded-full mt-1.5 mx-auto overflow-hidden">
+            <div
+              className="h-full bg-white rounded-full transition-all duration-1000"
+              style={{ width: `${timerPercent}%` }}
+            />
           </div>
+        </div>
+      </div>
 
-          {/* Submitted info */}
-          <div className="text-white text-right">
-            <p className="text-xs opacity-70">הגישו</p>
-            <p className="text-xl font-bold">{submittedCount}/{players.length}</p>
+      {/* Big letter card */}
+      <div className="flex justify-center py-5 bg-white border-b border-slate-100 shadow-sm">
+        <div className="flex flex-col items-center">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">האות לסיבוב זה</p>
+          <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-xl">
+            <span className="text-8xl font-black text-white leading-none">{letter}</span>
           </div>
+          <p className="text-xs text-slate-400 mt-2">כל תשובה חייבת להתחיל ב-<strong className="text-slate-600">{letter}</strong></p>
         </div>
       </div>
 
@@ -137,8 +132,9 @@ export default function Game({
               </div>
 
               {hints[cat.id] && (
-                <p className="text-xs text-amber-600 bg-amber-50 rounded px-2 py-1 mb-1.5">
-                  דוגמה: <strong>{hints[cat.id]}</strong> — מקסימום 5 נק׳
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mb-1.5 leading-relaxed">
+                  💡 <em>{hints[cat.id]}</em>
+                  <span className="block text-amber-500 mt-0.5">מקסימום 5 נק׳ בקטגוריה זו</span>
                 </p>
               )}
 

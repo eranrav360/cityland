@@ -4,9 +4,11 @@ import Home from './components/Home';
 import Lobby from './components/Lobby';
 import Game from './components/Game';
 import Results from './components/Results';
+import LetterReveal from './components/LetterReveal';
+import RoundWinner from './components/RoundWinner';
 
 const initialState = {
-  screen: 'home',         // 'home' | 'lobby' | 'playing' | 'stopping' | 'reviewing' | 'finished'
+  screen: 'home',  // 'home'|'lobby'|'letter-reveal'|'playing'|'stopping'|'round-winner'|'reviewing'|'finished'
   roomCode: null,
   playerId: null,
   isHost: false,
@@ -32,6 +34,8 @@ function reducer(state, action) {
       return { ...state, players: action.players };
     case 'HOST_CHANGED':
       return { ...state, isHost: action.hostId === state.playerId };
+    case 'LETTER_REVEAL':
+      return { ...state, screen: 'letter-reveal', letter: action.letter, roundNumber: action.roundNumber, totalRounds: action.totalRounds };
     case 'GAME_STARTED':
       return { ...state, screen: 'playing', letter: action.letter, categories: action.categories, timeLeft: action.timeLeft, roundNumber: action.roundNumber, totalRounds: action.totalRounds, results: null, stopCalledBy: null, submittedCount: 0 };
     case 'TIMER_UPDATE':
@@ -41,7 +45,9 @@ function reducer(state, action) {
     case 'PLAYER_SUBMITTED':
       return { ...state, submittedCount: action.submittedCount };
     case 'ROUND_ENDED':
-      return { ...state, screen: 'reviewing', results: action.results, letter: action.letter, categories: action.categories, roundNumber: action.roundNumber, totalRounds: action.totalRounds, isLastRound: action.isLastRound };
+      return { ...state, screen: 'round-winner', results: action.results, letter: action.letter, categories: action.categories, roundNumber: action.roundNumber, totalRounds: action.totalRounds, isLastRound: action.isLastRound };
+    case 'SHOW_RESULTS':
+      return { ...state, screen: 'reviewing' };
     case 'GAME_ENDED':
       return { ...state, screen: 'finished', finalScores: action.finalScores };
     case 'SET_ERROR':
@@ -83,6 +89,10 @@ export default function App() {
 
     socket.on('host_changed', ({ hostId }) => {
       dispatch({ type: 'HOST_CHANGED', hostId });
+    });
+
+    socket.on('letter_reveal', ({ letter, roundNumber, totalRounds }) => {
+      dispatch({ type: 'LETTER_REVEAL', letter, roundNumber, totalRounds });
     });
 
     socket.on('game_started', ({ letter, categories, timeLeft, roundNumber, totalRounds }) => {
@@ -146,6 +156,10 @@ export default function App() {
     socket.emit('end_game', { roomCode: state.roomCode });
   }, [state.roomCode]);
 
+  const showResults = useCallback(() => {
+    dispatch({ type: 'SHOW_RESULTS' });
+  }, []);
+
   const playAgain = useCallback(() => {
     dispatch({ type: 'RESET' });
   }, []);
@@ -163,6 +177,29 @@ export default function App() {
         onStart={startGame}
         error={state.error}
       />
+    );
+  }
+
+  if (state.screen === 'letter-reveal') {
+    return (
+      <LetterReveal
+        letter={state.letter}
+        roundNumber={state.roundNumber}
+        totalRounds={state.totalRounds}
+      />
+    );
+  }
+
+  if (state.screen === 'round-winner') {
+    return (
+      <>
+        <RoundWinner
+          results={state.results}
+          roundNumber={state.roundNumber}
+          totalRounds={state.totalRounds}
+          onDone={showResults}
+        />
+      </>
     );
   }
 
