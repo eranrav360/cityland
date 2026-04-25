@@ -48,6 +48,8 @@ function reducer(state, action) {
       return { ...state, screen: 'round-winner', results: action.results, letter: action.letter, categories: action.categories, roundNumber: action.roundNumber, totalRounds: action.totalRounds, isLastRound: action.isLastRound };
     case 'SHOW_RESULTS':
       return { ...state, screen: 'reviewing' };
+    case 'RESULTS_UPDATED':
+      return { ...state, results: action.results };
     case 'GAME_ENDED':
       return { ...state, screen: 'finished', finalScores: action.finalScores };
     case 'SET_ERROR':
@@ -119,6 +121,10 @@ export default function App() {
       dispatch({ type: 'GAME_ENDED', finalScores });
     });
 
+    socket.on('results_updated', ({ results }) => {
+      dispatch({ type: 'RESULTS_UPDATED', results });
+    });
+
     return () => socket.disconnect();
   }, []);
 
@@ -159,6 +165,10 @@ export default function App() {
   const showResults = useCallback(() => {
     dispatch({ type: 'SHOW_RESULTS' });
   }, []);
+
+  const appealScore = useCallback((targetPlayerId, categoryId, newScore) => {
+    socket.emit('appeal_score', { roomCode: state.roomCode, targetPlayerId, categoryId, newScore });
+  }, [state.roomCode]);
 
   const playAgain = useCallback(() => {
     dispatch({ type: 'RESET' });
@@ -235,6 +245,7 @@ export default function App() {
         isHost={state.isHost}
         onNextRound={nextRound}
         onEndGame={endGame}
+        onAppeal={appealScore}
       />
     );
   }

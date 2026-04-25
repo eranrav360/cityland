@@ -126,7 +126,7 @@ export default function Game({
               }`}
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="font-bold text-slate-700">{cat.label}</span>
+                <span className="font-bold text-slate-700">{cat.emoji} {cat.label}</span>
                 <div className="flex items-center gap-1.5">
                   {hintUsed[cat.id] && (
                     <span className="hint-badge">💡 רמז</span>

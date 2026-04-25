@@ -27,14 +27,14 @@ const DEFAULT_ROUNDS = 5;
 const DEFAULT_TIME = 90;
 
 const CATEGORIES = [
-  { id: 'country',    label: 'ארץ' },
-  { id: 'city',       label: 'עיר' },
-  { id: 'animal',     label: 'חיה' },
-  { id: 'plant',      label: 'צמח' },
-  { id: 'name',       label: 'שם פרטי' },
-  { id: 'profession', label: 'מקצוע' },
-  { id: 'food',       label: 'אוכל/שתייה' },
-  { id: 'movie',      label: 'סרט/סדרה' },
+  { id: 'country',    label: 'ארץ',         emoji: '🌍' },
+  { id: 'city',       label: 'עיר',         emoji: '🏙️' },
+  { id: 'animal',     label: 'חיה',         emoji: '🐾' },
+  { id: 'plant',      label: 'צמח',         emoji: '🌿' },
+  { id: 'name',       label: 'שם פרטי',    emoji: '🧑' },
+  { id: 'profession', label: 'מקצוע',      emoji: '💼' },
+  { id: 'food',       label: 'אוכל/שתייה', emoji: '🍽️' },
+  { id: 'movie',      label: 'סרט/סדרה',   emoji: '🎬' },
 ];
 
 const HEBREW_LETTERS = ['א','ב','ג','ד','ה','ז','ח','י','כ','ל','מ','נ','ס','ע','פ','ר','ש','ת'];
@@ -186,8 +186,11 @@ function endRound(roomCode) {
   const { scores, categoryScores } = calculateScores(room);
 
   const results = [];
+  room.lastRoundCategoryScores = {}; // store for appeals
+
   for (const [sid, player] of room.players) {
     player.totalScore += scores[sid] || 0;
+    room.lastRoundCategoryScores[sid] = categoryScores[sid] || {};
     results.push({
       playerId: sid,
       playerName: player.name,
@@ -198,6 +201,8 @@ function endRound(roomCode) {
       usedHints: [...(room.hintUsed[sid] || new Set())],
     });
   }
+
+  room.lastResults = results;
 
   const isLastRound = room.roundNumber >= room.config.rounds;
   io.to(roomCode).emit('round_ended', {
@@ -329,6 +334,40 @@ io.on('connection', (socket) => {
 
     const hint = getHint(room.currentLetter, categoryId);
     socket.emit('hint_response', { categoryId, hint: hint || 'אין רמז זמין' });
+  });
+
+  socket.on('appeal_score', ({ roomCode, targetPlayerId, categoryId, newScore }) => {
+    const room = rooms.get(roomCode);
+    if (!room || room.state !== 'reviewing') return;
+    if (!room.lastRoundCategoryScores || !room.lastResults) return;
+
+    const clamped = Math.max(0, Math.min(15, parseInt(newScore) || 0));
+    const oldScore = room.lastRoundCategoryScores[targetPlayerId]?.[categoryId] ?? 0;
+    const diff = clamped - oldScore;
+
+    // Update stored category score
+    if (room.lastRoundCategoryScores[targetPlayerId]) {
+      room.lastRoundCategoryScores[targetPlayerId][categoryId] = clamped;
+    }
+
+    // Update player total
+    const player = room.players.get(targetPlayerId);
+    if (player) player.totalScore += diff;
+
+    // Patch the stored results and broadcast
+    room.lastResults = room.lastResults.map(r => {
+      if (r.playerId !== targetPlayerId) return r;
+      const newCatScores = { ...r.categoryScores, [categoryId]: clamped };
+      const newRoundScore = Object.values(newCatScores).reduce((a, b) => a + b, 0);
+      return {
+        ...r,
+        categoryScores: newCatScores,
+        roundScore: newRoundScore,
+        totalScore: r.totalScore + diff,
+      };
+    });
+
+    io.to(roomCode).emit('results_updated', { results: room.lastResults });
   });
 
   socket.on('next_round', ({ roomCode }) => {

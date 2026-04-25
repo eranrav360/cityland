@@ -1,11 +1,12 @@
 import { useState } from 'react';
 
 const TIME_OPTIONS = [
-  { value: 45,  label: '45 שניות' },
+  { value: 45,  label: '45 שנ׳' },
   { value: 60,  label: 'דקה' },
-  { value: 90,  label: '1:30 דקות' },
-  { value: 120, label: '2 דקות' },
-  { value: 180, label: '3 דקות' },
+  { value: 90,  label: '1:30' },
+  { value: 120, label: '2 דק׳' },
+  { value: 180, label: '3 דק׳' },
+  { value: 240, label: '4 דק׳' },
 ];
 
 export default function Lobby({ roomCode, players, isHost, onStart, error }) {
@@ -76,7 +77,7 @@ export default function Lobby({ roomCode, players, isHost, onStart, error }) {
 
             <div>
               <label className="text-xs font-semibold text-slate-500 block mb-1.5">זמן לכל סיבוב</label>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-3 gap-1.5 rtl:text-center">
                 {TIME_OPTIONS.map(opt => (
                   <button
                     key={opt.value}
