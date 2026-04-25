@@ -15,6 +15,8 @@ const initialState = {
   categories: [],
   timeLeft: 90,
   roundNumber: 0,
+  totalRounds: 5,
+  isLastRound: false,
   results: null,
   finalScores: null,
   stopCalledBy: null,
@@ -31,7 +33,7 @@ function reducer(state, action) {
     case 'HOST_CHANGED':
       return { ...state, isHost: action.hostId === state.playerId };
     case 'GAME_STARTED':
-      return { ...state, screen: 'playing', letter: action.letter, categories: action.categories, timeLeft: action.timeLeft, roundNumber: action.roundNumber, results: null, stopCalledBy: null, submittedCount: 0 };
+      return { ...state, screen: 'playing', letter: action.letter, categories: action.categories, timeLeft: action.timeLeft, roundNumber: action.roundNumber, totalRounds: action.totalRounds, results: null, stopCalledBy: null, submittedCount: 0 };
     case 'TIMER_UPDATE':
       return { ...state, timeLeft: action.timeLeft };
     case 'STOP_CALLED':
@@ -39,7 +41,7 @@ function reducer(state, action) {
     case 'PLAYER_SUBMITTED':
       return { ...state, submittedCount: action.submittedCount };
     case 'ROUND_ENDED':
-      return { ...state, screen: 'reviewing', results: action.results, letter: action.letter, categories: action.categories };
+      return { ...state, screen: 'reviewing', results: action.results, letter: action.letter, categories: action.categories, roundNumber: action.roundNumber, totalRounds: action.totalRounds, isLastRound: action.isLastRound };
     case 'GAME_ENDED':
       return { ...state, screen: 'finished', finalScores: action.finalScores };
     case 'SET_ERROR':
@@ -83,8 +85,8 @@ export default function App() {
       dispatch({ type: 'HOST_CHANGED', hostId });
     });
 
-    socket.on('game_started', ({ letter, categories, timeLeft, roundNumber }) => {
-      dispatch({ type: 'GAME_STARTED', letter, categories, timeLeft, roundNumber });
+    socket.on('game_started', ({ letter, categories, timeLeft, roundNumber, totalRounds }) => {
+      dispatch({ type: 'GAME_STARTED', letter, categories, timeLeft, roundNumber, totalRounds });
     });
 
     socket.on('timer_update', ({ timeLeft }) => {
@@ -99,8 +101,8 @@ export default function App() {
       dispatch({ type: 'PLAYER_SUBMITTED', submittedCount });
     });
 
-    socket.on('round_ended', ({ letter, categories, results }) => {
-      dispatch({ type: 'ROUND_ENDED', letter, categories, results });
+    socket.on('round_ended', ({ letter, categories, results, roundNumber, totalRounds, isLastRound }) => {
+      dispatch({ type: 'ROUND_ENDED', letter, categories, results, roundNumber, totalRounds, isLastRound });
     });
 
     socket.on('game_ended', ({ finalScores }) => {
@@ -120,8 +122,8 @@ export default function App() {
     socket.emit('join_room', { roomCode, playerName });
   }, []);
 
-  const startGame = useCallback(() => {
-    socket.emit('start_game', { roomCode: state.roomCode });
+  const startGame = useCallback((config) => {
+    socket.emit('start_game', { roomCode: state.roomCode, config });
   }, [state.roomCode]);
 
   const submitAnswers = useCallback((answers) => {
@@ -171,6 +173,7 @@ export default function App() {
         categories={state.categories}
         timeLeft={state.timeLeft}
         roundNumber={state.roundNumber}
+        totalRounds={state.totalRounds}
         players={state.players}
         submittedCount={state.submittedCount}
         stopCalledBy={state.stopCalledBy}
@@ -189,6 +192,9 @@ export default function App() {
         letter={state.letter}
         categories={state.categories}
         results={state.results}
+        roundNumber={state.roundNumber}
+        totalRounds={state.totalRounds}
+        isLastRound={state.isLastRound}
         isHost={state.isHost}
         onNextRound={nextRound}
         onEndGame={endGame}

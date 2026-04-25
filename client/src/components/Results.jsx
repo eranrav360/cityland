@@ -12,7 +12,7 @@ const SCORE_LABELS = {
   0:  '✗',
 };
 
-export default function Results({ letter, categories, results, isHost, onNextRound, onEndGame }) {
+export default function Results({ letter, categories, results, roundNumber, totalRounds, isLastRound, isHost, onNextRound, onEndGame }) {
   const sorted = [...(results || [])].sort((a, b) => b.totalScore - a.totalScore);
 
   return (
@@ -20,7 +20,7 @@ export default function Results({ letter, categories, results, isHost, onNextRou
       {/* Header */}
       <div className="bg-blue-600 text-white px-4 py-5 shadow-md">
         <div className="max-w-3xl mx-auto">
-          <p className="text-blue-200 text-sm font-medium mb-1">תוצאות הסיבוב</p>
+          <p className="text-blue-200 text-sm font-medium mb-1">סיבוב {roundNumber} מתוך {totalRounds}</p>
           <h2 className="text-3xl font-black">האות: {letter}</h2>
         </div>
       </div>
@@ -94,17 +94,23 @@ export default function Results({ letter, categories, results, isHost, onNextRou
         {/* Action buttons */}
         {isHost ? (
           <div className="flex gap-3 pb-6">
+            {!isLastRound && (
+              <button
+                onClick={onEndGame}
+                className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl text-base transition-colors"
+              >
+                סיום מוקדם
+              </button>
+            )}
             <button
-              onClick={onEndGame}
-              className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl text-base transition-colors"
+              onClick={isLastRound ? onEndGame : onNextRound}
+              className={`font-bold py-3 rounded-xl text-base transition-colors text-white ${
+                isLastRound
+                  ? 'flex-1 bg-green-500 hover:bg-green-600'
+                  : 'flex-grow-[2] bg-blue-600 hover:bg-blue-700'
+              }`}
             >
-              סיום משחק
-            </button>
-            <button
-              onClick={onNextRound}
-              className="flex-2 flex-grow-[2] bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-base transition-colors"
-            >
-              סיבוב הבא ←
+              {isLastRound ? '🏆 לוח תוצאות סופי' : 'סיבוב הבא ←'}
             </button>
           </div>
         ) : (

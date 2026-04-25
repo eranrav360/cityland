@@ -1,7 +1,16 @@
 import { useState } from 'react';
 
+const TIME_OPTIONS = [
+  { value: 45,  label: '45 שניות' },
+  { value: 60,  label: 'דקה' },
+  { value: 90,  label: '1:30 דקות' },
+  { value: 120, label: '2 דקות' },
+  { value: 180, label: '3 דקות' },
+];
+
 export default function Lobby({ roomCode, players, isHost, onStart, error }) {
   const [copied, setCopied] = useState(false);
+  const [config, setConfig] = useState({ rounds: 5, timeLimit: 90 });
 
   const copyCode = () => {
     navigator.clipboard.writeText(roomCode).then(() => {
@@ -21,11 +30,7 @@ export default function Lobby({ roomCode, players, isHost, onStart, error }) {
           <p className="text-xs font-semibold text-blue-500 mb-1">קוד החדר</p>
           <div className="flex items-center justify-center gap-3">
             <span className="text-4xl font-black font-mono tracking-widest text-blue-700">{roomCode}</span>
-            <button
-              onClick={copyCode}
-              title="העתק קוד"
-              className="text-blue-400 hover:text-blue-700 transition-colors text-xl"
-            >
+            <button onClick={copyCode} className="text-blue-400 hover:text-blue-700 transition-colors text-xl">
               {copied ? '✅' : '📋'}
             </button>
           </div>
@@ -48,6 +53,54 @@ export default function Lobby({ roomCode, players, isHost, onStart, error }) {
           </div>
         </div>
 
+        {/* Host config */}
+        {isHost && (
+          <div className="bg-slate-50 rounded-xl p-4 mb-5 space-y-4">
+            <p className="text-sm font-bold text-slate-600">הגדרות משחק</p>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-500 block mb-1.5">
+                מספר סיבובים: <span className="text-blue-600 font-bold">{config.rounds}</span>
+              </label>
+              <input
+                type="range"
+                min={1} max={15} step={1}
+                value={config.rounds}
+                onChange={e => setConfig(c => ({ ...c, rounds: +e.target.value }))}
+                className="w-full accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-slate-400 mt-0.5">
+                <span>1</span><span>15</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-500 block mb-1.5">זמן לכל סיבוב</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {TIME_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setConfig(c => ({ ...c, timeLimit: opt.value }))}
+                    className={`text-xs font-semibold py-1.5 rounded-lg border transition-colors ${
+                      config.timeLimit === opt.value
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isHost && (
+          <div className="bg-slate-50 rounded-xl px-4 py-3 mb-5 text-sm text-slate-500 text-center">
+            המארח יקבע את הגדרות המשחק
+          </div>
+        )}
+
         {error && (
           <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-medium">
             {error}
@@ -56,11 +109,11 @@ export default function Lobby({ roomCode, players, isHost, onStart, error }) {
 
         {isHost ? (
           <button
-            onClick={onStart}
+            onClick={() => onStart(config)}
             disabled={players.length < 2}
             className="w-full bg-green-500 hover:bg-green-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-xl text-lg transition-colors"
           >
-            {players.length < 2 ? 'ממתין לשחקנים...' : 'התחל משחק!'}
+            {players.length < 2 ? 'ממתין לשחקנים...' : `התחל משחק (${config.rounds} סיבובים)`}
           </button>
         ) : (
           <div className="text-center text-slate-500 font-medium py-3">

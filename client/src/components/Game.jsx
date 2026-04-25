@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 export default function Game({
-  letter, categories, timeLeft, roundNumber,
+  letter, categories, timeLeft, roundNumber, totalRounds,
   players, submittedCount,
   stopCalledBy, isStopping,
   onSubmit, onStop, onHint, socket,
@@ -73,7 +73,7 @@ export default function Game({
       <div className={`sticky top-0 z-10 shadow-md px-4 py-3 transition-colors ${isStopping ? 'bg-orange-500' : 'bg-blue-600'}`}>
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="text-white">
-            <p className="text-xs font-medium opacity-80">סיבוב {roundNumber}</p>
+            <p className="text-xs font-medium opacity-80">סיבוב {roundNumber} מתוך {totalRounds}</p>
             <div className="flex items-center gap-2">
               <span className="text-4xl font-black">{letter}</span>
               <div>

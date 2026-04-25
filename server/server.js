@@ -22,8 +22,9 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3001;
-const ROUND_TIME = 90;
 const STOP_GRACE = 15;
+const DEFAULT_ROUNDS = 5;
+const DEFAULT_TIME = 90;
 
 const CATEGORIES = [
   { id: 'country',    label: 'ארץ' },
@@ -134,15 +135,16 @@ function startRound(roomCode) {
   room.answers = {};
   room.hintUsed = {};
   room.submittedPlayers = new Set();
-  room.timeLeft = ROUND_TIME;
+  room.timeLeft = room.config.timeLimit;
 
   for (const sid of room.players.keys()) room.answers[sid] = {};
 
   io.to(roomCode).emit('game_started', {
     letter,
     categories: CATEGORIES,
-    timeLeft: ROUND_TIME,
+    timeLeft: room.config.timeLimit,
     roundNumber: room.roundNumber,
+    totalRounds: room.config.rounds,
   });
 
   room.timer = setInterval(() => {
@@ -180,11 +182,15 @@ function endRound(roomCode) {
     });
   }
 
+  const isLastRound = room.roundNumber >= room.config.rounds;
   io.to(roomCode).emit('round_ended', {
     letter: room.currentLetter,
     categories: CATEGORIES,
     results,
     hostId: room.host,
+    roundNumber: room.roundNumber,
+    totalRounds: room.config.rounds,
+    isLastRound,
   });
 }
 
@@ -199,6 +205,7 @@ io.on('connection', (socket) => {
       host: socket.id,
       players: new Map([[socket.id, { id: socket.id, name: playerName, totalScore: 0 }]]),
       state: 'lobby',
+      config: { rounds: DEFAULT_ROUNDS, timeLimit: DEFAULT_TIME },
       currentLetter: null,
       usedLetters: [],
       roundNumber: 0,
@@ -207,7 +214,7 @@ io.on('connection', (socket) => {
       submittedPlayers: new Set(),
       timer: null,
       stopTimer: null,
-      timeLeft: ROUND_TIME,
+      timeLeft: DEFAULT_TIME,
     });
 
     socket.join(roomCode);
@@ -240,10 +247,14 @@ io.on('connection', (socket) => {
     socket.to(code).emit('player_joined', { players: serializePlayers(room.players), newPlayer: playerName });
   });
 
-  socket.on('start_game', ({ roomCode }) => {
+  socket.on('start_game', ({ roomCode, config }) => {
     const room = rooms.get(roomCode);
     if (!room || room.host !== socket.id || room.state !== 'lobby') return;
     if (room.players.size < 2) return socket.emit('room_error', { message: 'צריך לפחות 2 שחקנים כדי להתחיל.' });
+    if (config) {
+      room.config.rounds    = Math.min(Math.max(parseInt(config.rounds)    || DEFAULT_ROUNDS, 1), 15);
+      room.config.timeLimit = Math.min(Math.max(parseInt(config.timeLimit) || DEFAULT_TIME,  30), 300);
+    }
     startRound(roomCode);
   });
 
