@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    font-family: 'Heebo', sans-serif;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-800;
+    direction: rtl;
+  }
+
+  input {
+    direction: rtl;
+  }
+}
+
+@layer utilities {
+  .timer-critical {
+    animation: pulse-red 1s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse-red {
+  0%, 100% { color: #ef4444; }
+  50%       { color: #b91c1c; }
+}
+
+.hint-badge {
+  @apply text-xs bg-amber-100 text-amber-800 border border-amber-300 rounded px-2 py-0.5;
+}
