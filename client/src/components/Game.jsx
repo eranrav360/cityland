@@ -1,4 +1,19 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+function playBeep(freq = 880, duration = 0.18, vol = 0.35) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch (_) {}
+}
 
 export default function Game({
   letter, categories, timeLeft, roundNumber, totalRounds,
@@ -35,6 +50,7 @@ export default function Game({
   useEffect(() => { answersRef.current = answers; }, [answers]);
 
   useEffect(() => {
+    if (timeLeft === 10) playBeep();
     if (timeLeft <= 2 && timeLeft > 0 && !submitted) {
       setSubmitted(true);
       onSubmit(answersRef.current);
@@ -80,8 +96,8 @@ export default function Game({
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col" dir="rtl">
-      {/* Header — slim info bar */}
-      <div className={`sticky top-0 z-10 shadow-md transition-colors ${isStopping ? 'bg-orange-500' : 'bg-blue-600'}`}>
+      {/* Header — fixed so timer stays visible when mobile keyboard opens */}
+      <div className={`fixed top-0 left-0 right-0 z-10 shadow-md transition-colors ${isStopping ? 'bg-orange-500' : 'bg-blue-600'}`}>
         <div className="max-w-2xl mx-auto px-4 py-2 flex items-center justify-between">
           <span className="text-white/80 text-sm font-semibold">סיבוב {roundNumber} מתוך {totalRounds}</span>
           <span className="text-white/80 text-sm font-semibold">הגישו {submittedCount}/{players.length}</span>
@@ -103,6 +119,9 @@ export default function Game({
           </div>
         </div>
       </div>
+
+      {/* Spacer to push content below the fixed header (~120px) */}
+      <div className="h-28" />
 
       {/* Big letter card */}
       <div className="flex justify-center py-5 bg-white border-b border-slate-100 shadow-sm">
