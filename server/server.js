@@ -9,11 +9,16 @@ app.use(cors());
 app.use(express.json());
 
 const server = http.createServer(app);
+const allowedOrigin = (origin, callback) => {
+  if (!origin || origin.endsWith('.vercel.app') || origin.startsWith('http://localhost')) {
+    callback(null, true);
+  } else {
+    callback(new Error(`CORS blocked: ${origin}`));
+  }
+};
+
 const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || '*',
-    methods: ['GET', 'POST'],
-  },
+  cors: { origin: allowedOrigin, methods: ['GET', 'POST'] },
 });
 
 const PORT = process.env.PORT || 3001;
