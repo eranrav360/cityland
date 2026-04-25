@@ -30,6 +30,17 @@ export default function Game({
     return () => socket.off('hint_response', handler);
   }, [socket]);
 
+  // Auto-submit 2 seconds before time runs out
+  const answersRef = useRef(answers);
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+
+  useEffect(() => {
+    if (timeLeft <= 2 && timeLeft > 0 && !submitted) {
+      setSubmitted(true);
+      onSubmit(answersRef.current);
+    }
+  }, [timeLeft]); // eslint-disable-line
+
   const handleChange = (catId, value) => {
     setAnswers(a => ({ ...a, [catId]: value }));
   };
